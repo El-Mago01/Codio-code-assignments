@@ -1,6 +1,6 @@
 import json
 
-file_path="c:/user/marti/PycharmProject/Zootopia/animals_data.json"
+file_path="c:/user/marti/PycharmProject/Codio/animals_data.json"
 
 def load_animals_data(file_path):
     with open(file_path, "r") as handle:
