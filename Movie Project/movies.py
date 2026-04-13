@@ -58,7 +58,7 @@ def get_correct_movie_input() -> tuple:
             rating=float(rating)
         if correct_input_provided == False:
             input("Input provide valid input. Press enter to continue")
-    return movie,rating, correct_input_provided
+    return movie, rating, correct_input_provided
 
 def add_movie(movies:dict) -> bool:
     movie, rating, correct_input_provided=get_correct_movie_input()
@@ -82,16 +82,14 @@ def delete_movie(movies:dict, movie_to_delete:str) -> bool:
         return False
     return True
 
-def update_movie(movies:dict) -> bool:
+def update_movie(movies:dict) -> str:
     movie_to_update, new_rating, correct_input_provided = get_correct_movie_input()
-    try:
+    movies_found=search_movies(movies,movie_to_update,2)
+    if len(movies_found) > 0: # in case there is an exact match already
         movies.update({movie_to_update: new_rating})
-    except:
-        print(f"Movie {movie_to_update} doesn't exist!")
-        input("Press enter to continue")
-        return False
-    print(f"Movie {movie_to_update} successfully updated")
-    return True
+        return movie_to_update
+    else:
+        return ""
 
 def max_min_rating_movie(movies: dict) -> tuple:
     min_rating = min(movies.values())
@@ -134,9 +132,10 @@ def search_movies(movies:dict, search_string, match_type:int=0) -> tuple:
     movies_found={}
     movies_names = movies.keys()
     for movie in movies_names:
-        if (search_string.lower() in movie.lower() and match_type == 0) or (search_string.lower() == movie.lower() and match_type == 1) or (search_string == movie and match_type == 2):
+        if ((search_string.lower() in movie.lower() and match_type == 0) or
+                (search_string.lower() == movie.lower() and match_type == 1) or
+                (search_string == movie and match_type == 2)):
             movies_found[movie]=movies[movie]
-
     return movies_found
 
 def sort_by_rating(movies:dict) -> list:
@@ -173,7 +172,11 @@ def main():
             if delete_movie(movies,movie_to_delete):
                 print(f"Movie {movie_to_delete} successfully deleted")
         if menu_selection == 4:
-            update_movie(movies)
+            updated_movie=update_movie((movies))
+            if len(updated_movie) > 0:
+                print(f"Movie {updated_movie} successfully updated")
+            else:
+                print(f"Movie doesn't exist!")
         if menu_selection == 5:
             show_stats(movies)
         if menu_selection == 6:
@@ -187,7 +190,6 @@ def main():
         if menu_selection == 8:
             sort_by_rating(movies)
         input("\nPress enter to continue")
-
 
 if __name__ == "__main__":
     main()
