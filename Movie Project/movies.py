@@ -3,7 +3,6 @@ import statistics
 import random
 import sys
 import matplotlib
-import numpy as np
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from thefuzz import fuzz
@@ -101,7 +100,6 @@ def add_movie(movies:dict) -> bool:
     if not correct_input_provided: # if correct input was provided (this should always be True
         print("Movie can not be added, wrong input")
         return False
-    found_movies=search_movies(movies,movie,1)
     if len(search_movies(movies,movie,1))>0 :#search case-insensitive, but matching characters
         print(f"Movie {movie} is already stored")
         return False
@@ -114,8 +112,8 @@ def add_movie(movies:dict) -> bool:
 def delete_movie(movies:dict, movie_to_delete:str) -> bool:
     try:
         movies.pop(movie_to_delete)
-    except:
-        print(bcolors.FAIL + f"Movie {movie_to_delete} doesn't exist!" + bcolors.ENDC)
+    except KeyError:
+        print(bcolors.FAIL + f"Movie could not be deleted. Movie not found: {movie_to_delete} " + bcolors.ENDC)
         return False
     return True
 
@@ -129,8 +127,8 @@ def update_movie(movies:dict) -> str:
     else:
         return ""
 
-# gather the statistics from the films and ratings in the dict.
-# best movie, worst movie, and the related ratings as tuple
+# Gather the statistics from the films and ratings in the dict.
+# Return best movie, worst movie, and the related ratings as tuple
 def max_min_rating_movie(movies: dict) -> tuple:
     min_rating = min(movies.values())
     max_rating = max(movies.values())
@@ -150,7 +148,7 @@ def max_min_rating_movie(movies: dict) -> tuple:
 # prints the statistics from the movie dictionary. No return value
 def show_stats(movies:dict):
     print(bcolors.ENDC)
-    average_rating=sum(movies.values())/len(movies)
+    average_rating=statistics.mean(movies.values())
     median_rating=statistics.median(list(movies.values()))
     best,max_rat, worst, min_rat = max_min_rating_movie(movies)
     print(f"Average rating: {average_rating}")
@@ -196,7 +194,7 @@ def editing_distance(search_string:str, movie_title:str) ->int:
     return distance
 # searches for movies in the dict using the search_string and 4 variants expressed by match_type (int)
 #   match_type 0 => not exact & case-insensitive
-#   match_type 1 => matching characters, but case-insensitive
+#   match_type 1 => matching characters, but case-insensitive and stripped
 #   match_type 2 => exact match, and case-sensitive
 #   match_type 3 => fuzzy matching
 def search_movies(movies:dict, search_string, match_type:int=0) -> dict:
@@ -212,7 +210,7 @@ def search_movies(movies:dict, search_string, match_type:int=0) -> dict:
     movies_names = movies.keys()
     for movie in movies_names:
         if ((search_string.lower() in movie.lower() and match_type == 0) or
-                (search_string.lower() == movie.lower() and match_type == 1) or
+                (search_string.lower().replace(" ","") == movie.lower().replace(" ","") and match_type == 1) or
                 (search_string == movie and match_type == 2) or
                 (editing_distance(search_string,movie) > FUZZY_SENS and match_type == 3)):
             e_distance=editing_distance(search_string, movie)
