@@ -1,10 +1,14 @@
-from importlib.metadata import pass_none
-import flights_data as fd
+import webbrowser
+# from importlib.metadata import pass_none
 from datetime import datetime
+import socketserver
+import http.server
+from threading import Thread
 import sqlalchemy
-# from pandas import DataFrame as df
 import pandas as pd
 import plot_flight_data as pfd
+import flights_data as fd
+
 
 IATA_LENGTH = 3
 
@@ -26,8 +30,10 @@ def percentage_of_delayed_flights_per_airline():
     for airline in airlines:
         nr_of_flights_delayed=fd.get_nr_of_delayed_flights_by_airline(airline[0])
         total_nr_of_flights=fd.get_nr_of_flights_by_airline(airline[0])
-        if float(total_nr_of_flights[0][0]) != 0: # Avoid a problem for a airline that's still without any flights
-            delay_per_airline[airline[0]] = round((float(nr_of_flights_delayed[0][0]) / float(total_nr_of_flights[0][0]) * 100), 1)
+        if float(total_nr_of_flights[0][0]) != 0:
+        # Avoid a problem for a airline that's still without any flights
+            delay_per_airline[airline[0]] = round((float(nr_of_flights_delayed[0][0])
+                                                   / float(total_nr_of_flights[0][0]) * 100), 1)
 
     fig=pfd.plot_percentage_of_delayed_flights_per_airline(delay_per_airline)
     write_to_file = input("Would you like to export this data to a .png file? (y/n)")
@@ -54,25 +60,57 @@ def percentage_of_delayed_flights_per_hour_of_the_day():
     percentage_of_delayed_flights_per_hour=[]
     hours_list=[]
     for hour in total_flights_per_hour:
-        print(hour[0])
         delayed_flights_this_hour=delayed_flights_per_hour[int(hour[0])][1]
         total_flights_this_hour=total_flights_per_hour[int(hour[0])][1]
-        percentage_of_delayed_flights_this_hour=(delayed_flights_this_hour/total_flights_this_hour)*100
-        percentage_of_delayed_flights_per_hour.append(percentage_of_delayed_flights_this_hour)
+        percentage_of_delayed_flights_this_hour=(delayed_flights_this_hour
+                                                 / total_flights_this_hour)*100
+        (percentage_of_delayed_flights_per_hour.append(
+            percentage_of_delayed_flights_this_hour))
         hours_list.append(int(hour[0]))
-        # percentage_delayed_flights_ph=delayed_flights_per_hour[int(hour[0])][1])/delayed_flights_per_hour[hour[0][1]]
-        # print(percentage_delayed_flights_ph)
-        # percentage_of_delayed_flights_per_hour.append((hour[0], delayed_flights_per_hour[int(hour[0][1])]))
-    print(percentage_of_delayed_flights_per_hour)
-    print(hours_list)
 
-    fig = pfd.plot_percentage_of_delayed_flight_per_hour(hours_list, percentage_of_delayed_flights_per_hour)
+    fig = pfd.plot_percentage_of_delayed_flight_per_hour(
+        hours_list, percentage_of_delayed_flights_per_hour)
 
     write_to_file = input("Would you like to export this data to a .png file? (y/n)")
     if write_to_file.lower() == "y" or write_to_file.lower() == "yes":
         f_name = input("Filename: ")
         fig.savefig(f_name + ".png")
 
+
+def start_socket_server():
+    PORT=8000
+    handler=http.server.SimpleHTTPRequestHandler
+    with socketserver.TCPServer(("", PORT), handler) as httpd:
+        print("serving at port", PORT)
+        httpd.serve_forever()
+
+def map_with_routes_of_delayed_flights():
+    # Algorithm
+    # 1. From the flights DB get all the delayed flights without canceled flights an flights where
+    #    delay = Null
+    #    For each Origin and Destination, include the latitude and longitude
+    # 2. Create a panda DataForm from the received SQL data
+    # 3. Use plot_flight_data.py library to draw the map and the routes, colored by delay
+
+    result=fd.get_delayed_flights_by_airport_incl_lat_long()
+    data=pd.DataFrame(result, columns=["origin", "destination",
+                                       "percentage", "origin_latitude",
+                                       "origin_longitude", "destination_latitude",
+                                       "destination_longitude"])
+    this_map=pfd.plot_map_with_routes(data)
+    this_map.save("delayed_routes_map.html")
+
+    print("File saved to delayed_routes_map.html. Open it in browser to see the map.")
+    open_in_browser=input("Do you want to see it in the browser? (y/n)")
+
+    if open_in_browser.lower() == "y" or open_in_browser.lower() == "yes":
+        print("Starting new thread to open localhost:8000")
+        thread=Thread(target=start_socket_server)
+        thread.start()
+        print("Thread started")
+        webbrowser.open("http://localhost:8000/delayed_routes_map.html",new=2)
+        # print("Browser should be opening now.")
+    # input("Press Enter to continue...")
 
 def heatmap_routes_of_delayed_flights():
 # Algorithm:
@@ -91,13 +129,9 @@ def heatmap_routes_of_delayed_flights():
 #   Reference material:
 #   https://www.geeksforgeeks.org/python/creating-a-pandas-dataframe-using-list-of-tuples/
 #   https://www.youtube.com/watch?v=cllz3subduA
-    iata_codes=fd.get_all_iata_codes()
-    print(iata_codes)
-    flight_map=fd.get_delayed_flights_by_airport()
+    flight_map=fd.get_delayed_flights_by_airport_orig_to_dest()
     df=pd.DataFrame(flight_map, columns=["Origin", "Destination", "Percentage"])
-    print(df)
     data=df.pivot(index="Origin", columns="Destination", values="Percentage")
-    print(data)
     fig=pfd.plot_heatmap_routes(data)
 
     write_to_file = input("Would you like to export this data to a .png file? (y/n)")
@@ -140,8 +174,8 @@ def flight_by_id():
     while not valid:
         try:
             id_input = int(input("Enter flight ID: "))
-        except Exception as e:
-            print("Try again...")
+        except ValueError:
+            print("Please provide a valid flight ID: Try again...")
         else:
             valid = True
     results = fd.get_flight_by_id(id_input)
@@ -180,7 +214,8 @@ def print_results(results):
 
         # Check that all required columns are in place
         try:
-            delay = int(result['DELAY']) if result['DELAY'] else 0  # If delay columns is NULL, set it to 0
+            delay = int(result['DELAY']) if result['DELAY'] else 0
+            # If delay columns is NULL, set it to 0
             origin = result['ORIGIN_AIRPORT']
             dest = result['DESTINATION_AIRPORT']
             airline = result['AIRLINE']
@@ -193,18 +228,21 @@ def print_results(results):
 
         if delay and delay > 0:
             print(f"{result['ID']}. {origin} -> {dest} by {airline}, Delay: {delay} Minutes")
-            data_export.append({'id': result['ID'], 'origin': dest, 'airline': airline, 'delay': str(delay) + "Minutes" })
+            data_export.append({'id': result['ID'], 'origin': dest,
+                                'airline': airline, 'delay': str(delay) + "Minutes" })
         else:
             print(f"{result['ID']}. {origin} -> {dest} by {airline}")
-            data_export.append({'id' : result['ID'], 'origin' : origin, 'dest':dest, 'airline' : airline})
+            data_export.append({'id' : result['ID'], 'origin' : origin,
+                                'dest':dest, 'airline' : airline})
+    if len(results) > 0:
+        write_to_file=input("Would you like to export this data to a CSV file? (y/n)")
 
-    write_to_file=input("Would you like to export this data to a CSV file? (y/n)")
-
-    if write_to_file.lower() == "y" or write_to_file.lower() == "yes":
-        print(data_export)
-        df = pd.DataFrame(data_export)
-        f_name = input("Filename: ")
-        df.to_csv(f_name, index=False)
+        if write_to_file.lower() == "y" or write_to_file.lower() == "yes":
+            df = pd.DataFrame(data_export)
+            f_name = input("Filename: ")
+            df.to_csv(f_name, index=False)
+    else:
+        input("Press enter to continue...")
 
 def show_menu_and_get_input():
     """
@@ -222,7 +260,7 @@ def show_menu_and_get_input():
             choice = int(input())
             if choice in FUNCTIONS:
                 return FUNCTIONS[choice][0]
-        except ValueError as e:
+        except ValueError:
             pass
         print("Try again...")
 
@@ -233,9 +271,14 @@ FUNCTIONS = { 1: (flight_by_id, "Show flight by ID"),
               2: (flights_by_date, "Show flights by date"),
               3: (delayed_flights_by_airline, "Delayed flights by airline"),
               4: (delayed_flights_by_airport, "Delayed flights by origin airport"),
-              5: (percentage_of_delayed_flights_per_airline, "Graph of % of delayed flights per airline"),
-              6: (percentage_of_delayed_flights_per_hour_of_the_day, "Graph of % of delayed flights per hour"),
-              7: (heatmap_routes_of_delayed_flights, "heatmap of the flight routes"),
+              5: (percentage_of_delayed_flights_per_airline,
+                  "Graph of % of delayed flights per airline"),
+              6: (percentage_of_delayed_flights_per_hour_of_the_day,
+                  "Graph of % of delayed flights per hour of the day"),
+              7: (heatmap_routes_of_delayed_flights,
+                  "A heatmap of the flight routes"),
+              8: (map_with_routes_of_delayed_flights,
+                  "A map indicating the routes, marked with the departure delay"),
               0: (quit, "Exit")
              }
 

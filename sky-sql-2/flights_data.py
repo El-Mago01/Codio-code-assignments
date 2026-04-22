@@ -95,6 +95,27 @@ HAVING COUNT(*) >= 20
 ORDER BY ORIGIN_AIRPORT ASC;
 """
 )
+QUERY_DELAYED_PERCENTAGE_OF_FLIGHTS_BY_ORIG_AIRPORT_TO_DEST_INCL_LAT_LONG=("""
+SELECT
+    ORIGIN_AIRPORT,
+    DESTINATION_AIRPORT,
+    AVG(CASE WHEN DEPARTURE_DELAY > 20 THEN 1.0 ELSE 0.0 END) * 100 AS delay_percentage,
+	ao.LATITUDE AS origin_latitude,
+	ao.LONGITUDE AS origin_longitude,
+	ad.LATITUDE AS destination_latitude,
+	ad.LONGITUDE AS destination_longitude
+FROM flights
+JOIN airports ao ON ao.IATA_CODE = flights.ORIGIN_AIRPORT
+JOIN airports ad ON ad.IATA_CODE = flights.DESTINATION_AIRPORT
+GROUP BY ORIGIN_AIRPORT, DESTINATION_AIRPORT
+HAVING COUNT(*) >= 20
+ORDER BY ORIGIN_AIRPORT ASC\
+    ;
+""")
+
+
+
+
 # Define the database URL
 DATABASE_URL = "sqlite:///data/flights.sqlite3"
 
@@ -136,7 +157,7 @@ def get_delayed_flights_by_airline(airline):
     params = {'airline': airline}
     return execute_query(QUERY_DELAYED_FLIGHTS_BY_AIRLINE, params)
 
-def get_delayed_flights_by_airport(airport):
+def get_delayed_flights_by_airport(airport:str):
     params = {'airport': airport}
     return execute_query(QUERY_DELAYED_FLIGHTS_BY_AIRPORT, params)
 
@@ -164,7 +185,11 @@ def get_all_iata_codes():
     params = {'airline': ""}
     return execute_query(QUERY_ALL_IATA_CODES, params)
 
-def get_delayed_flights_by_airport():
+def get_delayed_flights_by_airport_orig_to_dest():
     params = {'orig_airport': "" }
     return execute_query(QUERY_DELAYED_PERCENTAGE_OF_FLIGHTS_BY_ORIG_AIRPORT_TO_DEST, params)
 
+def get_delayed_flights_by_airport_incl_lat_long():
+    params = {'orig_airport': "" }
+    return execute_query(
+        QUERY_DELAYED_PERCENTAGE_OF_FLIGHTS_BY_ORIG_AIRPORT_TO_DEST_INCL_LAT_LONG, params)
