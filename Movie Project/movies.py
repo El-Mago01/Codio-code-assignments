@@ -1,3 +1,4 @@
+# File revision information: PA3
 import os
 import statistics
 import random
@@ -83,8 +84,9 @@ def list_movies(movies:dict):
 def get_correct_movie_input() -> tuple:
     correct_input_provided = False
     while correct_input_provided is False:
-        movie = input(bcolors.OKGREEN + "Enter movie name: ")
-        rating = input("Enter new movie rating: ")
+        movie = input(bcolors.OKGREEN + "Enter movie name: ").strip()
+        rating = input("Enter new movie rating: ").strip()
+
         if is_float(rating):
             if 0<= float(rating) <=10:
                 correct_input_provided = True
@@ -97,7 +99,7 @@ def get_correct_movie_input() -> tuple:
 # Adds a movie to the dict. Returns a boolean indicating success or not
 def add_movie(movies:dict) -> bool:
     movie, rating, correct_input_provided=get_correct_movie_input()
-    if not correct_input_provided: # if correct input was provided (this should always be True
+    if not correct_input_provided: # if correct input was provided (this should always be True)
         print("Movie can not be added, wrong input")
         return False
     if len(search_movies(movies,movie,1))>0 :#search case-insensitive, but matching characters
@@ -114,7 +116,7 @@ def delete_movie(movies:dict, movie_to_delete:str) -> bool:
         movies.pop(movie_to_delete)
     except KeyError:
         print(bcolors.FAIL + f"Movie could not be deleted. Movie not found: {movie_to_delete} " + bcolors.ENDC)
-        return False
+        return False1
     return True
 
 # updates a movie from the dict. Returns the updated movie name or empty string if it failed
