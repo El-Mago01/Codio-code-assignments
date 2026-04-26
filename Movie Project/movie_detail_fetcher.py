@@ -49,14 +49,14 @@ def get_movie_data(imdbID:str="", title:str="") -> dict:
         print("Valid response received: ", movie_details['Response'])
     return  movie_details
 
-def fetch_movie_general_data(title:str)-> dict:
+def fetch_movie_general_data(title:str)-> list:
     movie_data=get_movie_data("",title)
     print(movie_data)
     print(type(movie_data))
     if len(movie_data)>0:
         return movie_data['Search']
     else:
-        return {}
+        return []
 
 
 def fetch_specific_movie_details(imdbID:str)-> dict:
