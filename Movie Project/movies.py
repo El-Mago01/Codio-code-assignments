@@ -1,34 +1,34 @@
+"""
+Algorithm:
+=============================
+step 10: show the menu and ask for input to select a function
+step 20: validate the input, if not, return to step 10
+step 30: execute the desired CRUD function or analysis function
+step 40: show the results to screen
+step 50: ask for an enter to continue
+step 60: after enter is provided, start from 10 again.
+"""
 # File revision information: PA3
-import movie_detail_fetcher as mdf
-import movie_storage_sql as mss
-from thefuzz import fuzz
-import matplotlib.pyplot as plt
 import os
 import sqlite3
 import statistics
 import random
 import sys
-from random import choice
-from time import time
-
+from thefuzz import fuzz
+import matplotlib.pyplot as plt
 import matplotlib
 import sqlalchemy
-
+import movie_detail_fetcher as mdf
+import movie_storage_sql as mss
 matplotlib.use('Agg')
 
-# Algorithm:
-# =============================
-# step 10: show the menu numbered from 1-8 and ask for input
-# step 20: check that the provided input is a number from 1-8, if not, clear the screen and show the menu again.
-# step 30: execute the desired CRUD function or analysis function
-# step 40: show the results to screen
-# step 50: ask for an enter to continue
-# step 60: after enter is provided, start from 10 again.
+# from random import choice
+# from time import time
 
-# class bcolors used for color setting of output text
-
-
-class bcolors:
+# class BColors used for color setting of output text
+# pylint: disable=too-few-public-methods
+class BColors:
+    """Utility class to represent colors on the terminal."""
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
     OKCYAN = '\033[96m'
@@ -62,6 +62,9 @@ def clear_screen():
 
 
 def is_float(string: str) -> bool:
+    """
+    carefully check if a string can be converted to a float
+    """
     try:
         float(string)
     except ValueError:
@@ -76,54 +79,55 @@ def show_menu():
     while True:
         clear_screen()  # clears the screen
         print(
-            bcolors.OKBLUE +
+            BColors.OKBLUE +
             "** ** ** ** ** My Movies Database ** ** ** ** ** \n\n")
         for key in FUNCTIONS:
-            print(bcolors.OKBLUE +
+            print(BColors.OKBLUE +
                   f"{key} - {FUNCTIONS[key][1]}" +
-                  bcolors.ENDC)
+                  BColors.ENDC)
         try:
-            user_choice = int(input(bcolors.OKBLUE + "Enter choice(1 - 9): "))
+            user_choice = int(input(BColors.OKBLUE + "Enter choice(1 - 9): "))
             print(user_choice)
             if user_choice in FUNCTIONS:
                 print("returning", FUNCTIONS[user_choice][0])
                 return FUNCTIONS[user_choice][0]
         except (TypeError, ValueError):
-            print(bcolors.FAIL + "Please enter a valid choice!" + bcolors.ENDC)
+            print(BColors.FAIL + "Please enter a valid choice!" + BColors.ENDC)
 
-
-def command_list_movies(movie_list: list = []):
+# pylint: disable=dangerous-default-value
+def command_list_movies(movie_list:list=None):
     """
     list the all available movies in the current DB or list the provided movies
     """
-    if len(movie_list) == 0:  # no list with movies is provided, so fetch the ones from the DB
+    if not movie_list:  # no list with movies is provided, so fetch the ones from the DB
         movie_list = mss.list_movies()
-        print(bcolors.ENDC + f"Showing you now {len(movie_list)} movie(s)")
+        print(BColors.ENDC + f"Showing you now {len(movie_list)} movie(s)")
         print(
-            bcolors.ENDC + f"{
+            BColors.ENDC + f"{
                 'ID':<5}|{
                 'imdbID':<12}|{
                 'Title':<80}|{
-                    'Year':<6}|{
+                    'Year':<12}|{
                         'imdbRating':<12}|{
                             'Poster link':<2}")
         print(
-            "============================================================================================"
-            "============================================================================================")
+            "========================================================================"
+            "========================================================================"
+            "========================================")
         for movie in movie_list:
             print(
-                bcolors.ENDC + f"{
+                BColors.ENDC + f"{
                     movie[0]:<5}|{
                     movie[1]:<12}|{
                     movie[2]:<80}|" f"{
-                    movie[3]:<6}|{
+                    movie[3]:<12}|{
                         movie[4]:<12}|{
                             movie[5]:<2}")
     else:
         try:
-            print(bcolors.ENDC + f"Showing you now {len(movie_list)} movie(s)")
+            print(BColors.ENDC + f"Showing you now {len(movie_list)} movie(s)")
             print(
-                bcolors.ENDC + f"{
+                BColors.ENDC + f"{
                     'ID':<5}|{
                     'imdbID':<12}|{
                     'Title':<80}|{
@@ -131,25 +135,25 @@ def command_list_movies(movie_list: list = []):
                         'imdbRating':<12}|{
                             'Poster link':<2}")
             print(
-                "============================================================================================"
-                "============================================================================================")
-            if type(
-                    movie_list[0]) is tuple or type(
-                    movie_list[0]) is sqlalchemy.engine.row.Row:
+                "========================================================================"
+                "========================================================================"
+                "========================================")
+            if (isinstance(movie_list[0], tuple) or
+                    isinstance(movie_list[0], sqlalchemy.engine.row.Row)):
                 for movie in movie_list:
                     print(
-                        bcolors.ENDC + f"{
+                        BColors.ENDC + f"{
                             movie[0]:<5}|{
                             movie[1]:<12}|{
                             movie[2]:<80}|" f"{
                             movie[3]:<6}|{
                             movie[4]:<12}|{
                             movie[5]:<2}")
-            elif type(movie_list[0]) is dict:
+            elif isinstance(movie_list[0], dict):
                 counter = 1
                 for movie in movie_list:
                     print(
-                        bcolors.ENDC + f"{
+                        BColors.ENDC + f"{
                             counter:<5}|{
                             movie['imdbID']:<12}|{
                             movie['Title']:<80}|" f"{
@@ -168,54 +172,121 @@ def command_list_movies(movie_list: list = []):
 
 
 def enter_rating() -> float:
+    """
+    Manually enter the rating for the movie
+    :return: a valid rating as float or -1 when the user pressed ENTER
+    """
     while True:
         try:
             rating = input("Enter movie rating: ").strip()
             if rating == "":
                 return -1
             rating = float(rating)
-            if (0 <= rating <= 10):
+            if 0 <= rating <= 10:
                 return rating
-            else:
-                raise ValueError
+            # in case no valid rating, nor an ENTER was provided raise a ValueError
+            raise ValueError
         except (TypeError, ValueError):
             print(
-                bcolors.FAIL +
+                BColors.FAIL +
                 'Please enter a valid rating value from 0-10 or Enter to abort' +
-                bcolors.ENDC)
+                BColors.ENDC)
 
 
-def enter_year() -> int:
+def enter_year() -> str:
+    """
+    Manually enter the year of the movie
+    :return: a valid year as integer or -1 when the user pressed ENTER
+    """
     while True:
         try:
-            year = input(bcolors.OKGREEN + "Enter the year: ").strip()
-            if year == "":
-                return -1
-            year = int(year)
-            if year > 1888:
-                return year
-            else:
-                raise ValueError
+            year_range = input(BColors.OKGREEN + "Enter the year: ").strip()
+            if year_range == "":
+                return ""
+            year=year_range.split("-")
+            print(year)
+            print(type(year))
+            for year in year_range:
+                year = int(year)
+                if year < 1888: # the first year that a film was published
+                    raise ValueError
+                return year_range
+            # in case no valid year, nor an ENTER was provided raise a ValueError
+            return year_range
         except (TypeError, ValueError):
             print(
-                bcolors.FAIL +
-                "Please enter a valid year as a number of 4 digits, from 1888 onwards" +
-                bcolors.ENDC)
-            input(bcolors.FAIL + "Press enter to continue!" + bcolors.ENDC)
+                BColors.FAIL +
+                "Please enter a valid year of 4 digits, from 1888 onwards or a year "
+                "range e.g 1977 - 1982" +
+                BColors.ENDC)
+            input(BColors.FAIL + "Press enter to continue!" + BColors.ENDC)
 
 
 def enter_movie_title():
+    """
+    Manually enter the title of the movie
+    :return: a valid rating as string which has a minimum length of 2 characters
+    """
     while 1:
-        title = input(bcolors.OKGREEN + "Enter movie title: ").strip()
+        title = input(BColors.OKGREEN + "Enter movie title: ").strip()
         # Assuming there is no movie title with less than 2 characters.
-        if (len(title) >= 2):
+        if len(title) >= 2:
             return title
-        else:
-            print(
-                bcolors.FAIL +
-                "Please enter a valid movie title of at least 3 characters" +
-                bcolors.ENDC)
+        # If no proper title was entered with at least 2 characters:
+        print(
+            BColors.FAIL +
+            "Please enter a valid movie title of at least 2 characters" +
+            BColors.ENDC)
 
+def fetch_movie_via_id(movie_index, movies_list) -> dict:
+    """
+    from a list of movies and a provided movie_index, return the specific
+    movie that was chosen.
+    :param movie_id:
+    :param movies_found:
+    :return:
+    """
+    print(f"{movie_index}These were the movies found:, {movies_list}")
+    print(type(movies_list))
+    # id is the index in the movies_list.
+    try:
+        movie=movies_list[movie_index]
+        print(
+            f"This is the selected movie under id {movie_index}: \n{
+                movies_list[movie_index]}")
+        return movie
+    except KeyError:
+        return {}
+
+def select_movie(movies_found:list) -> dict:
+    """
+    from a list of movies and  input from a user, i.e. a
+    movie ID, return the specific movie that was selected
+    The user can abort by pressing ENTER.
+    It is checked if the provided user input movie is indeed
+    a valid ID, return the movie that was chosen.
+    :param movies_found: a list of movies
+    :return: 1 specific movie as dict or and empty dict if
+    the user pressed enter
+    """
+    while 1:
+        selected_id = input(
+            BColors.OKGREEN +
+            "Enter movie valid ID or ENTER to abort: ").strip()
+        if selected_id == "":
+            return {}
+        try:
+            selected_id = int(selected_id)
+            print(selected_id)
+            selected_movie = fetch_movie_via_id(selected_id - 1, movies_found)
+            if len(selected_movie) != 0:  # If a valid id was provided
+                return selected_movie
+        except ValueError:
+            pass
+        print(
+            BColors.FAIL +
+            "Please enter a valid movie id as number or press ENTER to abort" +
+            BColors.ENDC)
 
 def command_add_movie() -> bool:
     """
@@ -229,16 +300,6 @@ def command_add_movie() -> bool:
 
         :return: bool : success or not
     """
-    def select_movie_with_id(movie_id, movies_found) -> dict:
-        print(f"{movie_id}These were the movies found:, {movies_found}")
-        print(type(movies_found))
-        # id is the index in the movies_found list.
-        if movie_id <= len(movies_found) - 1:
-            print(
-                f"This is the selected movie under id {movie_id}: \n{
-                    movies_found[movie_id]}")
-            return movies_found[movie_id]
-        return {}
 
     def enter_correct_movie_input() -> dict:
         """
@@ -248,7 +309,8 @@ def command_add_movie() -> bool:
         3. Find all movies containing the movie title
         4. Print all the found movies, including the imdbID, title and year
         5. Ask the user to enter the movie it wanted to insert
-        6. For the provided imdbID, return the full title, the year and, if available, an imdbRating.
+        6. For the provided imdbID, return the full title, the year and,
+           if available, an imdbRating.
 
         :return: full title, the year and, if available, an imdbRating.
         """
@@ -258,31 +320,11 @@ def command_add_movie() -> bool:
         if len(movies_found) == 0:
             return {}
         command_list_movies(movies_found)
-        while 1:
-            selected_id = input(
-                bcolors.OKGREEN +
-                "Enter movie valid ID or ENTER to abort: ").strip()
-            if selected_id == "":
-                break
+        selected_movie=select_movie(movies_found)
+        if len(selected_movie) != 0:  # User selected a valid movie
             try:
-                selected_id = int(selected_id)
-                print(selected_id)
-                selected_movie = select_movie_with_id(
-                    selected_id - 1, movies_found)
-                if len(selected_movie) != 0:  # If a valid id was provided
-                    break
-            except ValueError:
-                pass
-            print(
-                bcolors.FAIL +
-                "Please enter a valid movie id as number or press ENTER to abort" +
-                bcolors.ENDC)
-
-        if selected_id != "":  # User provided a valid imdbID
-            try:
-                year = int(
-                    mdf.fetch_specific_movie_detail_item(
-                        'Year', selected_movie['imdbID']))
+                year = mdf.fetch_specific_movie_detail_item(
+                        'Year', selected_movie['imdbID'])
             except ValueError:
                 year = 0
             try:
@@ -298,21 +340,22 @@ def command_add_movie() -> bool:
                      'Rating': rating,
                      'Poster': selected_movie['Poster']}
             return movie
-        else:  # User pressed ENTER to abort
-            return {}
+        # User pressed ENTER to abort
+        return {}
 
     def add_the_movie(movie: dict) -> None:
         print("Storing the movie")
         try:
             if not mss.add_movie(movie):
                 raise sqlite3.IntegrityError(
-                    "Movie could not be stored. UNIQUE constraint failed!")
-        except Exception as error:
+                    "Movie could not be stored. Check if the imdbID is not yet already stored.")
+            print(f"Movie \'{movie['Title']}\' successfully added")
+        except sqlite3.IntegrityError as error:
             print(
                 f"Movie {
-                    movie['Title']} not stored successfully. Please contact your system administrator")
+                    movie['Title']} not stored successfully. Please contact your "
+                f"system administrator")
             print("Fault message is: ", error)
-        print(f"Movie {movie['Title']} successfully added")
 
     new_movie = enter_correct_movie_input()
     if len(new_movie) != 0:  # A valid imdbID was provided
@@ -322,7 +365,7 @@ def command_add_movie() -> bool:
                 add_the_movie(new_movie)
             else:
                 print(
-                    bcolors.ENDC +
+                    BColors.ENDC +
                     "The following similar movies already exist in the DB:")
                 command_list_movies(movies_found)
                 choice = input("Do you want to continue y/n: ")
@@ -351,24 +394,24 @@ def select_movie_id() -> tuple:
     def show_found_movies_and_select(movies: list) -> tuple:
         command_list_movies(movies)
         valid_entry = False
-        while valid_entry == False:
+        while valid_entry is False:
             try:
-                id = input(
+                movie_id = input(
                     f"Please provide ID of the movie you would like to select? "
                     f"Or press Enter to return to MENU: ")
-                if len(id) == 0:
+                if len(movie_id) == 0:
                     return tuple()
                 for movie in movies:
-                    if movie[0] == int(id):
+                    if movie[0] == int(movie_id):
                         valid_entry = True
                         print("Selected movie =", movie)
                         return movie
             except (ValueError, TypeError):
                 pass
             print(
-                bcolors.WARNING +
+                BColors.WARNING +
                 "Wrong input provided, please try again" +
-                bcolors.ENDC)
+                BColors.ENDC)
 
     # =======================================================================
     # The actual start of function select_movie_id
@@ -381,26 +424,26 @@ def select_movie_id() -> tuple:
         if len(selected_movie) == 0:  # User pressed ENTER to escape
             print("The user aborted deletion!")
             return tuple()
-        else:  # The user selected the movie
-            print(f"Movie {selected_movie} was selected. ")
+        # The user selected the movie
+        print(f"Movie {selected_movie} was selected. ")
+        return selected_movie
+    # No movies found. Searching for movies with similar name
+    print("Movie not found. Searching for movies with similar name")
+    movies_found = search_title(title, 3)
+    if len(movies_found) > 0:  # If 1 or more similar movies found
+        print(
+            BColors.ENDC +
+            "Found 1 or more movies with a similar name, please select")
+        selected_movie = show_found_movies_and_select(movies_found)
+        print(selected_movie)
+        if len(selected_movie) != 0:  # The user selected a movie
             return selected_movie
-    else:  # No movies found. Searching for movies with similar name
-        print("Movie not found. Searching for movies with similar name")
-        movies_found = search_title(title, 3)
-        if len(movies_found) > 0:  # If 1 or more similar movies found
-            print(
-                bcolors.ENDC +
-                "Found 1 or more movies with a similar name, please select")
-            selected_movie = show_found_movies_and_select(movies_found)
-            print(selected_movie)
-            if len(selected_movie) != 0:  # The user selected a movie
-                return selected_movie
-            else:  # No movies with similar names found
-                print(bcolors.ENDC + "No movie found with that name in the DB")
-                return tuple()
-        else:
-            print("Movie not found in the DB, nor movies with a similar name")
-            return tuple()
+        # No movies with similar names found
+        print(BColors.ENDC + "No movie found with that name in the DB")
+        return tuple()
+    # if No movie found:
+    print("Movie not found in the DB, nor movies with a similar name")
+    return tuple()
 
 
 def command_delete_movie() -> bool:
@@ -428,9 +471,9 @@ def command_delete_movie() -> bool:
             selected_movie[2]):  # check if the deletion was successful
         print(f"Movie {selected_movie[2]} deleted successfully.")
         return True
-    else:  # If deletion was not successful
-        print(f"Deleting of movie {selected_movie[2]} failed...")
-        return False
+    # If deletion was not successful
+    print(f"Deleting of movie {selected_movie[2]} failed...")
+    return False
 
 # updates a movie from the dict. Returns the updated movie name or empty
 # string if it failed
@@ -452,29 +495,39 @@ def command_update_movie() -> bool:
 
     :return: a boolean if the movie was updated or not
     """
-    selected_movie = select_movie_id()
-    print(selected_movie)
-    if len(selected_movie) == 0:
-        return False
-    new_rating = enter_rating()
-    print(selected_movie)
-
-    if mss.update_movie(
-            selected_movie[0],
-            new_rating,
-            selected_movie[1]):  # check if the deletion was successful
-        print(
-            f"Movie {
-                selected_movie[1]} with ID{
-                selected_movie[0]} updated successfully.")
-        return True
-    else:  # If deletion was not successful
-        print(f"Deleting of movie {selected_movie[1]} failed...")
-        return False
+    pass
+    # selected_movie = select_movie_id()
+    # print(selected_movie)
+    # if len(selected_movie) == 0:
+    #     return False
+    # new_rating = enter_rating()
+    # print(selected_movie)
+    #
+    # if mss.update_movie(
+    #         selected_movie[0],
+    #         new_rating,
+    #         selected_movie[1]):  # check if the deletion was successful
+    #     print(
+    #         f"Movie {
+    #             selected_movie[1]} with ID{
+    #             selected_movie[0]} updated successfully.")
+    #     return True
+    # # If deletion was not successful
+    # print(f"Deleting of movie {selected_movie[1]} failed...")
+    # return False
 
 
 def command_show_stats():
-    def max_min_rating_movie(movies, rating_list) -> tuple:
+    """
+    Algorithm:
+    1. Get all the movies in the database
+    2. Create a list of ratings of all the movies
+    3. Derive the median and mean statistics by using statistics module
+    4. Derive the max, min rating and best and worst movie by
+    calling max_min_worst_best
+    :return:
+    """
+    def max_min_worst_best_movie(movies, rating_list) -> tuple:
         """
         Gather the statistics from the films and imdbRating in the dict.
         Return best movie, worst movie, and the related imdbRating as tuple
@@ -494,13 +547,13 @@ def command_show_stats():
             best_movie = "Not found + "
         if worst_movie == "":
             worst_movie = "Not found + "
-        return best_movie[0:-3], max_rating, worst_movie[0:-
-                                                         3], min_rating # slicing to remove the + at the end
+        return best_movie[0:-3], max_rating, worst_movie[0:-3], min_rating
+        # slicing to remove the + at the end
     # =======================================================================
     # The actual start of function command_show_stats
     # =======================================================================
 
-    print(bcolors.ENDC)
+    print(BColors.ENDC)
     rating_list = []
     movies = mss.list_movies()
     for movie in movies:
@@ -508,7 +561,7 @@ def command_show_stats():
     print(rating_list)
     average_rating = statistics.mean(rating_list)
     median_rating = statistics.median(rating_list)
-    best, max_rat, worst, min_rat = max_min_rating_movie(movies, rating_list)
+    best, max_rat, worst, min_rat = max_min_worst_best_movie(movies, rating_list)
     print(f"Average imdbRating: {average_rating}")
     print(f"Median imdbRating: {median_rating}")
     print(f"Best movie: {best}, {max_rat}")
@@ -523,7 +576,7 @@ def command_random_movie() -> tuple:
     movies = mss.list_movies()
     random_movie = random.choice(movies)
     print(
-        bcolors.ENDC +
+        BColors.ENDC +
         f"Your movie for tonight: {
             random_movie[2]}, it's rated {
             random_movie[4]}.")
@@ -532,8 +585,9 @@ def command_random_movie() -> tuple:
 
 def editing_distance(search_string: str, movie_title: str) -> int:
     """ NOT YET READY FOR MATCH_TYPE 4
-    This function calculates the distance between the search_string and movie title and returns the "distance"
-    between these 2 strings. The distance is calculated using fuzzy matching, using the "thefuzz" library
+    This function calculates the distance between the search_string and movie title
+    and returns the "distance" between these 2 strings. The distance is calculated
+    using fuzzy matching, using the "thefuzz" library
 
     """
     distance = fuzz.ratio(search_string, movie_title)
@@ -559,16 +613,22 @@ def search_title(search_string, match_type: int = 0) -> list:
     try:
         if match_type > 3 or match_type < 0:
             raise ReferenceError(
-                bcolors.FAIL +
+                BColors.FAIL +
                 "search function does not exist with that match_type")
         movies_found = list(mss.search_movie(search_string, match_type))
     except ReferenceError:
-        print(bcolors.WARNING + "Movie not found" + bcolors.ENDC)
+        print(BColors.WARNING + "Movie not found" + BColors.ENDC)
 
     return movies_found
 
 
 def command_search_movie():
+    """
+    The user is asked to provide the title for a movie.
+    it will then call search_title with match_type 3
+    The results will be printed to screen
+    :return:
+    """
     title = enter_movie_title()
     movies_found = search_title(title, 3)
     command_list_movies(movies_found)
@@ -578,7 +638,8 @@ def command_sort_by_rating(direction: str = 'descending') -> list:
     """
     orders the list using the "sorted" function with one-liner function for key
     the anonymous one-liner function key=lambda tup: tup[1] ensures the sorting on rating
-    the function returns the sorted list ascending or descending, based upon input parameter 'direction'
+    the function returns the sorted list ascending or descending, based upon input
+    parameter 'direction'
     :param movies
     :param match_type:
     :return:
@@ -597,7 +658,11 @@ def command_sort_by_rating(direction: str = 'descending') -> list:
 
 
 def command_quit():
-    exit()
+    """
+    quits the application
+    :return:
+    """
+    sys.exit()
 
 
 def command_create_rating_histogram():
@@ -608,7 +673,6 @@ def command_create_rating_histogram():
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     """
-    movie_list = mss.list_movies()
     rating_list = []
     movies = mss.list_movies()
     for movie in movies:
@@ -620,9 +684,10 @@ def command_create_rating_histogram():
     plt.show()
     plt.savefig("histogram.png")
     sys.stdout.flush()
-    print(bcolors.ENDC + "File histogram.png is created")
+    print(BColors.ENDC + "File histogram.png is created")
 
 
+# pylint: disable=pointless-string-statement
 """
 Function Dispatch Dictionary
 """
@@ -647,7 +712,7 @@ def main():
     while True:
         menu_selection = show_menu()
         menu_selection()
-        input(bcolors.OKBLUE + "\nPress enter to continue")
+        input(BColors.OKBLUE + "\nPress enter to continue")
 
 
 if __name__ == "__main__":

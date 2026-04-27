@@ -1,3 +1,5 @@
+import sqlite3
+
 from sqlalchemy import create_engine, text
 
 # Define the database URL
@@ -12,8 +14,8 @@ with engine.connect() as connection:
         CREATE TABLE IF NOT EXISTS movies (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             imdbID TEXT UNIQUE NOT NULL,
-            title TEXT UNIQUE NOT NULL,
-            year INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            year TEXT NOT NULL,
             imdbRating REAL NOT NULL,
             poster TEXT
         )
@@ -58,8 +60,9 @@ def add_movie(movie: dict) -> bool:
             connection.commit()
             print(f"Movie '{title}' added successfully.")
             return True
+        # Any exception that can occur results in movie not stored.
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"Error during storage of the movie: {e}")
             return False
 
 
