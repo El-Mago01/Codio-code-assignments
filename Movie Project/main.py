@@ -18,6 +18,7 @@ from thefuzz import fuzz
 import matplotlib.pyplot as plt
 import matplotlib
 import sqlalchemy
+from typing import Optional
 import movie_detail_fetcher as mdf
 import movie_storage_sql as mss
 import web_generator as wg
@@ -96,7 +97,9 @@ def show_menu():
             print(BColors.FAIL + "Please enter a valid choice!" + BColors.ENDC)
 
 # pylint: disable=dangerous-default-value
-def command_list_movies(movie_list:list=None):
+def command_list_movies(movie_list: Optional[list] = None): # This trick is needed to avoid a problem 
+                                                            # of a list getting the value None 
+                                                            # command_list_movies(movie_list:list=None)   => Results in a warning 
     """
     list the all available movies in the current DB or list the provided movies
     """
@@ -107,23 +110,22 @@ def command_list_movies(movie_list:list=None):
             BColors.ENDC + f"{
                 'ID':<5}|{
                 'imdbID':<12}|{
-                'Title':<80}|{
+                'Title':<60}|{
                     'Year':<12}|{
                         'imdbRating':<12}|{
                             'Poster link':<2}")
         print(
             "========================================================================"
-            "========================================================================"
-            "========================================")
+            "==============================================================")
         for movie in movie_list:
             print(
                 BColors.ENDC + f"{
                     movie[0]:<5}|{
                     movie[1]:<12}|{
-                    movie[2]:<80}|" f"{
+                    movie[2]:<60.58}|{
                     movie[3]:<12}|{
                         movie[4]:<12}|{
-                            movie[5]:<2}")
+                            movie[5][0:26]}...{movie[5][-36:]::<2.50}")
     else:
         try:
             print(BColors.ENDC + f"Showing you now {len(movie_list)} movie(s)")
@@ -131,8 +133,8 @@ def command_list_movies(movie_list:list=None):
                 BColors.ENDC + f"{
                     'ID':<5}|{
                     'imdbID':<12}|{
-                    'Title':<80}|{
-                    'Year':<6}|{
+                    'Title':<60.58}|{
+                    'Year':<12}|{
                         'imdbRating':<12}|{
                             'Poster link':<2}")
             print(
@@ -146,10 +148,10 @@ def command_list_movies(movie_list:list=None):
                         BColors.ENDC + f"{
                             movie[0]:<5}|{
                             movie[1]:<12}|{
-                            movie[2]:<80}|" f"{
-                            movie[3]:<6}|{
+                            movie[2]:<60.58}|{
+                            movie[3]:<12}|{
                             movie[4]:<12}|{
-                            movie[5]:<2}")
+                            movie[5][0:26]}...{movie[5][-36:]::<2.50}")
             elif isinstance(movie_list[0], dict):
                 counter = 1
                 for movie in movie_list:
@@ -157,10 +159,10 @@ def command_list_movies(movie_list:list=None):
                         BColors.ENDC + f"{
                             counter:<5}|{
                             movie['imdbID']:<12}|{
-                            movie['Title']:<80}|" f"{
-                            movie['Year']:<6}|{
+                            movie['Title']:<60.58}|" f"{
+                            movie['Year']:<12}|{
                             '-':<12}|{
-                            movie['Poster']:<2}|")
+                            movie['Poster'][0:26]}...{movie['Poster'][-36:]::<2.50}")
                     counter += 1
             else:
                 raise TypeError("Unexpected Type", type(movie_list[0]))
