@@ -1,5 +1,4 @@
-import sqlite3
-
+# import sqlite3
 from sqlalchemy import create_engine, text
 
 # Define the database URL
@@ -25,15 +24,15 @@ with engine.connect() as connection:
 
 def list_movies():
     """Retrieve all movies from the database."""
-    with engine.connect() as connection:
-        result = connection.execute(
+    with engine.connect() as conn:
+        result = conn.execute(
             text("SELECT id, imdbID, Title, Year, imdbRating, Poster FROM movies"))
         movies = result.fetchall()
     print(movies)
     print(type(movies))
     return movies
 
-
+# pylint: disable=invalid-name
 def add_movie(movie: dict) -> bool:
     """Add a movie to the database."""
 
@@ -43,7 +42,7 @@ def add_movie(movie: dict) -> bool:
     rating = movie['Rating']
     poster = movie['Poster']
     print("Poster:", poster)
-    with engine.connect() as connection:
+    with engine.connect() as conn:
         try:
             print(f"Inserting movie {title} into the database")
             params = {
@@ -52,15 +51,16 @@ def add_movie(movie: dict) -> bool:
                 "year": year,
                 "rating": rating,
                 "poster": poster}
-            connection.execute(
+            conn.execute(
                 text(
                     "INSERT INTO movies (imdbID, Title, Year, imdbRating, Poster) "
                     "VALUES (:imdbID, :title, :year, :rating, :poster)"),
                 params)
-            connection.commit()
+            conn.commit()
             print(f"Movie '{title}' added successfully.")
             return True
-        # Any exception that can occur results in movie not stored.
+        # Catch any exception that can occur results in movie not stored.
+        # pylint: disable=broad-exception-caught
         except Exception as e:
             print(f"Error during storage of the movie: {e}")
             return False
@@ -68,14 +68,16 @@ def add_movie(movie: dict) -> bool:
 
 def delete_movie(movie_id, title) -> bool:
     """Delete a movie from the database."""
-    with engine.connect() as connection:
+    with engine.connect() as conn:
         try:
             print(
                 f"Deleting movie {title} with ID {movie_id} from the database")
-            connection.execute(text("DELETE FROM movies WHERE ID = :id"),
+            conn.execute(text("DELETE FROM movies WHERE ID = :id"),
                                {"id": movie_id})
-            connection.commit()
+            conn.commit()
             print(f"Movie '{title}' deleted successfully.")
+        # Catch any exception that can occur results in movie not stored.
+        # pylint: disable=broad-exception-caught
         except Exception as e:
             print(f"Error: {e}")
             return False
@@ -96,38 +98,46 @@ def delete_movie(movie_id, title) -> bool:
 #     return True
 
 
-# searches for movies in the dict using the search_string and 4 variants expressed by match_type (int)
+# searches for movies in the dict using the search_string and 4 variants
+# expressed by match_type (int)
 #   match_type 0 => exact match, and case-sensitive
 #   match_type 1 => exact match but case-insensitive
 #   match_type 2 => matching characters, but case-insensitive and stripped
 #   match_type 3 => fuzzy matching
+# pylint: disable=invalid-name
 def search_movie(title, match_type: int = 0) -> dict:
     """Search for a movie from the database."""
 
-    SEARCH_QUERY_0 = "SELECT id,imdbID, title, year, imdbRating,poster FROM movies WHERE title = :title"
+    SEARCH_QUERY_0 = ("SELECT id,imdbID, title, year, imdbRating,poster FROM movies "
+                      "WHERE title = :title")
     params_0 = {"title": title}
-    SEARCH_QUERY_1 = "SELECT id,imdbID, title, year, imdbRating, poster FROM movies WHERE LOWER(title) = :title"
+    SEARCH_QUERY_1 = ("SELECT id,imdbID, title, year, imdbRating, poster FROM movies "
+                      "WHERE LOWER(title) = :title")
     params_1 = {"title": title.lower()}
-    SEARCH_QUERY_2 = "SELECT id,imdbID, title, year, imdbRating, poster FROM movies WHERE REPLACE(LOWER(title),' ','') = :title"
+    SEARCH_QUERY_2 = ("SELECT id,imdbID, title, year, imdbRating, poster FROM movies "
+                      "WHERE REPLACE(LOWER(title),' ','') = :title")
     params_2 = {"title": title.lower().replace(' ', '')}
-    SEARCH_QUERY_3 = "SELECT id,imdbID, title, year, imdbRating, poster FROM movies WHERE LOWER(title) LIKE :title"
+    SEARCH_QUERY_3 = ("SELECT id,imdbID, title, year, imdbRating, poster FROM movies "
+                      "WHERE LOWER(title) LIKE :title")
     params_3 = {"title": f"%{title.lower()}%"}
 
-    with engine.connect() as connection:
+    with engine.connect() as conn:
         try:
             print(f"Searching for movie {title} into the database")
             if match_type == 0:
-                result = connection.execute(text(SEARCH_QUERY_0), params_0)
+                result = conn.execute(text(SEARCH_QUERY_0), params_0)
             elif match_type == 1:
-                result = connection.execute(text(SEARCH_QUERY_1), params_1)
+                result = conn.execute(text(SEARCH_QUERY_1), params_1)
             elif match_type == 2:
-                result = connection.execute(text(SEARCH_QUERY_2), params_2)
+                result = conn.execute(text(SEARCH_QUERY_2), params_2)
             elif match_type == 3:
-                result = connection.execute(text(SEARCH_QUERY_3), params_3)
+                result = conn.execute(text(SEARCH_QUERY_3), params_3)
             else:
                 raise ReferenceError("Search function not implemented")
-            connection.commit()
+            conn.commit()
             print(result)
+        # pylint: disable=broad-exception-caught
+        # Any type of connection failure is caught
         except Exception as e:
             print(f"Error: {e}")
             return {}
@@ -140,6 +150,10 @@ def search_movie(title, match_type: int = 0) -> dict:
 
 
 def main():
+    """
+    Contains some basic tests to test the working of the database
+    :return:
+    """
     # found_movies=search_movie("The Hulk",0)
     # print(f" This/these movie(s) were found: {found_movies}")
     #

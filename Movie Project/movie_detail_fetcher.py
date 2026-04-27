@@ -1,5 +1,5 @@
-import requests
 import os
+import requests
 from dotenv import load_dotenv
 
 # load all environment variables
@@ -13,6 +13,13 @@ CURRENT_MOVIE = {}
 
 
 def get_movie_data(imdbID: str = "", title: str = "") -> dict:
+    """
+    gets the detailed movie data from the OMDB API for a specific imdbID or title. At least
+    one of these parameters must be provided with a valid value (i.e. not "").
+    :param imdbID: the imdbID to fetch
+    :param title: the title to fetch
+    :return:
+    """
     print(f"imdbID={imdbID}, title={title}")
 
     def specify_search_term(imdbID: str = "0", title: str = "") -> str:
@@ -26,6 +33,8 @@ def get_movie_data(imdbID: str = "", title: str = "") -> dict:
                 search_term = f"?apikey={api_key}&s={title}"
                 print("title provided. This is the search term:", search_term)
             return search_term
+        # pylint: disable=broad-exception-caught
+        # Any type of connection failure is caught
         except Exception as e:
             print("Unexpected path taken. Either imdbID or title must be provided")
             print(e)
@@ -38,9 +47,13 @@ def get_movie_data(imdbID: str = "", title: str = "") -> dict:
     elif title != "":    # the title is the main search key
         url = BASE_URL + specify_search_term("", title)
         print(url)
+    else:
+        return {} #Should not occur. Either, imdbID or title must be provided
     try:
-        response = requests.get(url)
+        response = requests.get(url, timeout=5)
         movie_details = response.json()
+        # pylint: disable=broad-exception-caught
+        # Any type of connection failure is caucht
     except Exception as e:
         print("Could not access API: GET Request failed:", e)
         print("Please contact your system administrator")
@@ -55,34 +68,54 @@ def get_movie_data(imdbID: str = "", title: str = "") -> dict:
 
 
 def fetch_movie_general_data(title: str) -> list:
+    """
+    get all the movies from the API that are alike the provided title
+    :param title: the title to fetch
+    :return: a list of movies
+    """
     movie_data = get_movie_data("", title)
     print(movie_data)
     print(type(movie_data))
     if len(movie_data) > 0:
         return movie_data['Search']
-    else:
-        return []
+    return [] # in case movie_data is empty
 
 
 def fetch_specific_movie_details(imdbID: str) -> dict:
+    """
+    fetch specific movie details from the OMDB API for a specific imdbID
+    :param imdbID:
+    :return:
+    """
     movie_data = get_movie_data(imdbID)
     return movie_data
 
 
 def fetch_specific_movie_detail_item(item: str, imdbID: str) -> str:
+    """
+    fetch specific movie details from the OMDB API for a specific imdbID and for a specific item,
+    e.g. imdbRating
+    :param item: the key you look for in the API-output e.g. imdbRating
+    :param imdbID: the specific film you'd like to get the detailed data for.
+    :return: the value of the provided item for the provided movie imdbID.
+    or an empty string if the item is not found.
+    """
     try:
         movie_details = fetch_specific_movie_details(imdbID)
         print("returning for item:", movie_details[item])
         if movie_details[item] is not None:
             return movie_details[item]
-        else:
-            return ""
+        return "" # in case no movie_details for the specific imdbID where found
     except KeyError:
         print("Invalid item received: ", movie_details)
         return ""
 
 
 def main():
+    """
+    general test data to test basic functionality
+    :return:
+    """
     title = "matrix"
     movie_details = fetch_movie_general_data(title)
     print(f"Showing you now {len(movie_details)} movies")
