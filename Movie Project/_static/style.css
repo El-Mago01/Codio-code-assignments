@@ -13,15 +13,20 @@ body {
 }
 
 .movie-grid {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
   list-style-type: none;
   padding: 0;
   margin: 0;
   margin-top: 20px;
-  display: flex;
-  justify-content: center;
+
+
 }
 
 .movie-grid li {
+
+
   padding: 10px 15px;
   text-align: left;
 }
@@ -31,7 +36,7 @@ body {
 }
 
 .movie-title,
-.movie-year {
+.movie-year,.movie-rating {
   font-size: 0.8em;
   text-align: center;
 }
@@ -42,6 +47,10 @@ body {
 
 .movie-year {
   color: #999;
+}
+
+.movie-rating {
+  color: #0b5852;
 }
 
 

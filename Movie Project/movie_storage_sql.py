@@ -1,8 +1,12 @@
 # import sqlite3
+import os
+from pathlib import Path
 from sqlalchemy import create_engine, text
 
 # Define the database URL
-DB_URL = "sqlite:///data/movies.db"
+BASE_DIR = Path(__file__).resolve().parent
+DB_PATH = BASE_DIR / "data" / "movies.db"
+DB_URL = f"sqlite:///{DB_PATH.as_posix()}"
 DEBUG = True
 # Create the engine
 engine = create_engine(DB_URL, echo=DEBUG)
@@ -13,11 +17,13 @@ with engine.connect() as connection:
         CREATE TABLE IF NOT EXISTS movies (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
-            imdbID TEXT UNIQUE NOT NULL,
+            imdbID TEXT NOT NULL,
             title TEXT NOT NULL,
             year TEXT NOT NULL,
             imdbRating REAL NOT NULL,
-            poster TEXT
+            poster TEXT,
+            note TEXT,
+            country TEXT
         )
     """))
     connection.commit()
@@ -27,7 +33,7 @@ def list_all_movies():
     """Retrieve all movies from the database."""
     with engine.connect() as conn:
         result = conn.execute(
-            text("SELECT id, imdbID, Title, Year, imdbRating, Poster, user_id FROM movies"))
+            text("SELECT id, imdbID, Title, Year, imdbRating, Poster, note, country, user_id FROM movies"))
         movies = result.fetchall()
     print(movies)
     print(type(movies))
@@ -37,7 +43,7 @@ def list_movies(user_id: int):
     """Retrieve all movies from the database."""
     with engine.connect() as conn:
         result = conn.execute(
-            text("SELECT id, imdbID, Title, Year, imdbRating, Poster, user_id FROM movies WHERE user_id = :user_id"),
+            text("SELECT id, imdbID, Title, Year, imdbRating, Poster, note, country, user_id FROM movies WHERE user_id = :user_id"),
             {"user_id": user_id}
         )
         movies = result.fetchall()
@@ -54,6 +60,7 @@ def add_movie(movie: dict, user_id: int) -> bool:
     year = movie['Year']
     rating = movie['Rating']
     poster = movie['Poster']
+    country = movie['Country']
     print("Poster:", poster)
     with engine.connect() as conn:
         try:
@@ -64,11 +71,13 @@ def add_movie(movie: dict, user_id: int) -> bool:
                 "title": title,
                 "year": year,
                 "rating": rating,
-                "poster": poster}
+                "poster": poster,
+                "country": country
+                }
             conn.execute(
                 text(
-                    "INSERT INTO movies (user_id, imdbID, Title, Year, imdbRating, Poster) "
-                    "VALUES (:user_id, :imdbID, :title, :year, :rating, :poster)"),
+                    "INSERT INTO movies (user_id, imdbID, Title, Year, imdbRating, Poster, Country) "
+                    "VALUES (:user_id, :imdbID, :title, :year, :rating, :poster, :country)"),
                 params)
             conn.commit()
             print(f"Movie '{title}' added successfully.")
@@ -97,31 +106,33 @@ def delete_movie(movie_id: int, title: str, user_id: int) -> bool:
             return False
     return True
 
-# def update_movie(movie_id, new_rating, title):
-#     """Update a movie's rating in the database."""
-#     with engine.connect() as connection:
-#         try:
-#             print(f"updating movie {title} with ID {movie_id} from the database")
-#             connection.execute(text("UPDATE movies SET rating = :rating WHERE id = :id"),
-#                                {"id": movie_id, "rating": new_rating})
-#             connection.commit()
-#             print(f"Movie '{title}' updated successfully.")
-#         except Exception as e:
-#             print(f"Error: {e}")
-#             return False
-#     return True
+def update_movie(movie_id: int, new_note: str, title: str) -> bool:
+    """Update a movie's rating in the database."""
+    with engine.connect() as connection:
+        try:
+            print(f"updating movie {title} with ID {movie_id} from the database with the following note: \n{new_note}")
+            connection.execute(text("UPDATE movies SET note = :note WHERE id = :id"),
+                               {"id": movie_id, "note": new_note})
+            connection.commit()
+            print(f"Movie '{title}' updated successfully.")
+        except Exception as e:
+            print(f"Error: {e}")
+            return False
+    return True
 
 
-"""
-searches for movies in the dict using the search_string and 4 variants
-expressed by match_type (int)
-  match_type 0 => exact match, and case-sensitive
-  match_type 1 => exact match but case-insensitive
-  match_type 2 => matching characters, but case-insensitive and stripped
-  match_type 3 => fuzzy matching# pylint: disable=invalid-name
-"""
+
 def search_movie(title:str, user_id: int, match_type: int = 0) -> dict:
-    """Search for a movie from the database."""
+    """
+    Search for a movie from the database.
+
+    searches for movies in the dict using the search_string and 4 variants
+    expressed by match_type (int)
+    match_type 0 => exact match, and case-sensitive
+    match_type 1 => exact match but case-insensitive
+    match_type 2 => matching characters, but case-insensitive and stripped
+    match_type 3 => fuzzy matching# pylint: disable=invalid-name
+    """
 
     SEARCH_QUERY_0 = ("SELECT id, imdbID, title, year, imdbRating, poster FROM movies "
                         "WHERE title = :title AND user_id = :user_id")
