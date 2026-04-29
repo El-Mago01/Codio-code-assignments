@@ -12,17 +12,15 @@ import flights_data as fd
 
 IATA_LENGTH = 3
 
-def total_flights_per_airline(): """
-    Calculates the total number of flights per airline
-"""
-
 def percentage_of_delayed_flights_per_airline():
-# Algorithm:
-# 1. Get all the airlines
-# 2. Per airline get all the delayed flights (i.e. >= 20 minutes) without empty cells for DELAY
-# 3. Per airline get the total number of flights, without empty cells for DELAY
-# 4. Form a dict['airline', % delayed]
-# 5. Plot the dict in a graph
+    """
+    Algorithm:
+    1. Get all the airlines
+    2. Per airline get all the delayed flights (i.e. >= 20 minutes) without empty cells for DELAY
+    3. Per airline get the total number of flights, without empty cells for DELAY
+    4. Form a dict['airline', % delayed]
+    5. Plot the dict in a graph
+    """
 
     # Get all the airlines
     airlines=fd.get_airlines()
@@ -239,8 +237,8 @@ def print_results(results):
 
         if write_to_file.lower() == "y" or write_to_file.lower() == "yes":
             df = pd.DataFrame(data_export)
-            f_name = input("Filename: ")
-            df.to_csv(f_name, index=False)
+            f_name = input("Filename (without extension): ")
+            df.to_csv(f_name+".csv", index=False)
     else:
         input("Press enter to continue...")
 

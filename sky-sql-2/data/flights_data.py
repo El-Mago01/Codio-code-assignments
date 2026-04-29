@@ -1,13 +1,13 @@
 from sqlalchemy import create_engine, text
 
 QUERY_FLIGHT_BY_ID = ("""
-SELECT flights.ID, flights.DEPARTURE_DELAY, flights.ORIGIN_AIRPORT, flights.DESTINATION_AIRPORT, airlines.airline, flights.ID as FLIGHT_ID, flights.DEPARTURE_DELAY as DELAY 
+SELECT flights.*, airlines.airline, flights.ID as FLIGHT_ID, flights.DEPARTURE_DELAY as DELAY 
 FROM flights JOIN airlines ON flights.airline = airlines.id 
 WHERE flights.ID = :id
 ;
 """)
 QUERY_FLIGHTS_BY_DATE = ("""
-SELECT flights.ID, flights.DEPARTURE_DELAY, flights.ORIGIN_AIRPORT, flights.DESTINATION_AIRPORT, airlines.airline, flights.ID as FLIGHT_ID, flights.DEPARTURE_DELAY as DELAY 
+SELECT flights.*, airlines.airline, flights.ID as FLIGHT_ID, flights.DEPARTURE_DELAY as DELAY 
 FROM flights JOIN airlines ON flights.airline = airlines.id 
 WHERE flights.DAY = :day 
   AND flights.MONTH= :month 
@@ -15,17 +15,17 @@ WHERE flights.DAY = :day
 ;
 """)
 QUERY_DELAYED_FLIGHTS_BY_AIRLINE = ("""
-SELECT flights.ID, flights.DEPARTURE_DELAY, flights.ORIGIN_AIRPORT, flights.DESTINATION_AIRPORT, airlines.airline, flights.ID as FLIGHT_ID, flights.DEPARTURE_DELAY as DELAY 
+SELECT flights.*, airlines.airline, flights.ID as FLIGHT_ID, flights.DEPARTURE_DELAY as DELAY 
 FROM flights JOIN airlines ON flights.airline = airlines.id 
 WHERE flights.DEPARTURE_DELAY >= 20 
-  AND airlines.airline LIKE :airline 
+  AND airlines.airline= :airline 
   AND flights.DEPARTURE_DELAY IS NOT NULL
   AND flights.DEPARTURE_DELAY  <> ''
 
 ;
 """)
 QUERY_DELAYED_FLIGHTS_BY_AIRPORT = ("""
-SELECT flights.DEPARTURE_DELAY, , airlines.airline, flights.ID as FLIGHT_ID, flights.DEPARTURE_DELAY as DELAY 
+SELECT flights.*, airlines.airline, flights.ID as FLIGHT_ID, flights.DEPARTURE_DELAY as DELAY 
 FROM flights JOIN airlines ON flights.airline = airlines.id 
              JOIN airports ON flights.ORIGIN_AIRPORT = airports.IATA_CODE 
 WHERE flights.DEPARTURE_DELAY >= 20 
@@ -72,7 +72,7 @@ SUBSTR(departure_time, 1, 2) AS hour,
 FROM flights
 WHERE departure_time IS NOT NULL
   AND departure_time <> ''
-  AND departure_delay >= 20
+  AND departure_delay >20
 GROUP BY SUBSTR(departure_time, 1, 2)
 ORDER BY hour;
 
@@ -88,7 +88,7 @@ QUERY_DELAYED_PERCENTAGE_OF_FLIGHTS_BY_ORIG_AIRPORT_TO_DEST=("""
 SELECT
     ORIGIN_AIRPORT,
     DESTINATION_AIRPORT,
-    AVG(CASE WHEN DEPARTURE_DELAY >= 20 THEN 1.0 ELSE 0.0 END) * 100 AS delay_percentage
+    AVG(CASE WHEN DEPARTURE_DELAY > 20 THEN 1.0 ELSE 0.0 END) * 100 AS delay_percentage
 FROM flights
 GROUP BY ORIGIN_AIRPORT, DESTINATION_AIRPORT
 HAVING COUNT(*) >= 20
@@ -99,7 +99,7 @@ QUERY_DELAYED_PERCENTAGE_OF_FLIGHTS_BY_ORIG_AIRPORT_TO_DEST_INCL_LAT_LONG=("""
 SELECT
     ORIGIN_AIRPORT,
     DESTINATION_AIRPORT,
-    AVG(CASE WHEN DEPARTURE_DELAY >= 20 THEN 1.0 ELSE 0.0 END) * 100 AS delay_percentage,
+    AVG(CASE WHEN DEPARTURE_DELAY > 20 THEN 1.0 ELSE 0.0 END) * 100 AS delay_percentage,
 	ao.LATITUDE AS origin_latitude,
 	ao.LONGITUDE AS origin_longitude,
 	ad.LATITUDE AS destination_latitude,
@@ -112,6 +112,8 @@ HAVING COUNT(*) >= 20
 ORDER BY ORIGIN_AIRPORT ASC\
     ;
 """)
+
+
 
 
 # Define the database URL
@@ -152,7 +154,7 @@ def get_flights_by_date(day, month, year):
     return execute_query(QUERY_FLIGHTS_BY_DATE, params)
 
 def get_delayed_flights_by_airline(airline):
-    params = {'airline': f"%{airline}%"}
+    params = {'airline': airline}
     return execute_query(QUERY_DELAYED_FLIGHTS_BY_AIRLINE, params)
 
 def get_delayed_flights_by_airport(airport:str):
