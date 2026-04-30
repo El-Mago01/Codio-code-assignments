@@ -11,6 +11,19 @@ api_key = os.getenv('apikey')
 
 CURRENT_MOVIE = {}
 
+class BColors:
+    """Utility class to represent colors on the terminal."""
+    HEADER = '\033[95m'
+    MENU_TEXT = '\033[94m'
+    OKCYAN = '\033[96m'
+    INPUT_TEXT = '\033[92m'
+    WARNING = '\033[93m'
+    BLINKING = '\033[5m'
+    FAIL = '\033[91m'
+    LISTING = '\033[0m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
 def get_movie_data(imdbID: str = "", title: str = "") -> dict:
     """
@@ -20,33 +33,35 @@ def get_movie_data(imdbID: str = "", title: str = "") -> dict:
     :param title: the title to fetch
     :return:
     """
-    print(f"imdbID={imdbID}, title={title}")
+    # print(f"imdbID={imdbID}, title={title}")
 
     def specify_search_term(imdbID: str = "0", title: str = "") -> str:
         try:
             if imdbID != "":  # the imdbID is the main search key
                 search_term = f"?apikey={api_key}&i={imdbID}"
-                print(
-                    f"imdbID={imdbID} provided. This is the search term:",
-                    search_term)
+                # print(BColors.LISTING + f"imdbID={imdbID} provided. "
+                    #   " This is the search term:", search_term)
             elif title != "":  # the title is the main search key
                 search_term = f"?apikey={api_key}&s={title}"
-                print("title provided. This is the search term:", search_term)
+                # print(BColors.LISTING + "Title provided. This is the "
+                # "search term:", search_term)
+            else:
+                search_term = f"?apikey={api_key}"
             return search_term
         # pylint: disable=broad-exception-caught
         # Any type of connection failure is caught
         except Exception as e:
-            print("Unexpected path taken. Either imdbID or title must be provided")
-            print(e)
+            print(BColors.FAIL + "Unexpected path taken. Either imdbID or title must be provided" + BColors.ENDC)
+            print(BColors.FAIL + f"Error: {e}" + BColors.ENDC)
             search_term = f"?apikey={api_key}"
             return search_term
 
     if imdbID != "":  # the imdbID is the main search key
         url = BASE_URL + specify_search_term(imdbID, "")
-        print(url)
+        # print(url)
     elif title != "":    # the title is the main search key
         url = BASE_URL + specify_search_term("", title)
-        print(url)
+        # print(url)
     else:
         return {} #Should not occur. Either, imdbID or title must be provided
     try:
@@ -55,15 +70,14 @@ def get_movie_data(imdbID: str = "", title: str = "") -> dict:
         # pylint: disable=broad-exception-caught
         # Any type of connection failure is caucht
     except Exception as e:
-        print("Could not access API: GET Request failed:", e)
-        print("Please contact your system administrator")
+        print(BColors.FAIL + "Could not access API: GET Request failed:" + BColors.ENDC)
+        print(BColors.FAIL + "Please contact your system administrator" + BColors.ENDC)
+        print(BColors.FAIL + f"Error: {e}" + BColors.ENDC)
         movie_details = {}
         return movie_details
     if movie_details['Response'] == "False":  # the json contains an invalid response
-        print("Movie not found!.", movie_details['Error'])
+        print(BColors.WARNING + "Movie not found!." + BColors.ENDC)
         movie_details = {}
-    else:
-        print("Valid response received: ", movie_details['Response'])
     return movie_details
 
 
@@ -74,8 +88,6 @@ def fetch_movie_general_data(title: str) -> list:
     :return: a list of movies
     """
     movie_data = get_movie_data("", title)
-    print(movie_data)
-    print(type(movie_data))
     if len(movie_data) > 0:
         return movie_data['Search']
     return [] # in case movie_data is empty
@@ -100,14 +112,15 @@ def fetch_specific_movie_detail_item(item: str, imdbID: str) -> str:
     :return: the value of the provided item for the provided movie imdbID.
     or an empty string if the item is not found.
     """
+    movie_details = {}
     try:
         movie_details = fetch_specific_movie_details(imdbID)
-        print("returning for item:", movie_details[item])
+        # print(BColors.LISTING + "returning for item:" + BColors.ENDC, movie_details[item])
         if movie_details[item] is not None:
             return movie_details[item]
         return "" # in case no movie_details for the specific imdbID where found
     except KeyError:
-        print("Invalid item received: ", movie_details)
+        print(BColors.FAIL + "Invalid item received: " + BColors.ENDC, movie_details)
         return ""
 
 

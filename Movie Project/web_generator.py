@@ -12,24 +12,24 @@ def load_html_file(file_path):
 def write_to_new_html_file(html_file, content):
     with open(html_file, "w") as f:
         f.write(content)
-        print(f'File stored in:{Path(__file__).parent.joinpath(f.name)}')
+        # print(f'File stored in:{Path(__file__).parent.joinpath(f.name)}')
 
 
 def scrape_for_flags(country: str) -> str:
     """
     Scrapes websites to obtain the country flags for a given country.
     """
-    print(f"Scraping for country: {country}")
+    # print(f"Scraping for country: {country}")
     SCRAPING_URL="https://flagsapi.com/"
     res= requests.get(SCRAPING_URL, timeout=5)
-    print(f"Response for {country}: {res.status_code}")
+    # print(f"Response for {country}: {res.status_code}")
     if res.status_code == 200:
         soup=BeautifulSoup(res.content, "html.parser")
         tags=soup.find_all('div', class_='item_country cell small-4 medium-2 large-2')
         for tag in tags:
             element=tag.text.splitlines()
             if element[2].strip().lower() == country.strip().lower():
-                print(f"Found country: {element[1]}, {element[2]}")
+                # print(f"Found country: {element[1]}, {element[2]}")
                 return element[1].strip().upper()
     return "BE"
 
@@ -66,7 +66,7 @@ def generate_grid(movies: list): #A list of tuples with the movies
     return grid
          
     
-def generate_website(movies, username):
+def generate_website(movies, username) -> str:
     """
     Generates a website with the movies in the MOVIES file.
     """  
@@ -78,4 +78,5 @@ def generate_website(movies, username):
     content=load_html_file(TEMPLATE)
     content=content.replace(_TITLE_, PAGE_TITLE) 
     content=content.replace(_MOVIE_GRID_, generate_grid(movies)) # we take the country of the first movie, but it should be the same for all movies of the user
-    write_to_new_html_file(MOVIES, content)   
+    write_to_new_html_file(MOVIES, content) 
+    return MOVIES  
